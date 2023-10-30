@@ -235,3 +235,6 @@ fpath+=~/.zfunc
 
 # load syntax highlighting
 source $ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# zoxide
+eval "$(zoxide init zsh)"
