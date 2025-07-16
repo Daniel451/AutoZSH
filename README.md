@@ -1,6 +1,6 @@
-# ZephyrZSH
+# AutoZSH
 
-ZephyrZSH is an open source easy install & default configuration wrapper
+AutoZSH is an open source easy install & default configuration wrapper
 for the Z Shell and [oh-my-zsh](https://ohmyz.sh).
 The project aims to
 provide a quick start with a feature-rich `zsh` environment. It installs
@@ -17,12 +17,12 @@ and adapt the code as long as:
 
 ## Forks, Redistribution (+Giving Credit)
 
-If you fork, redistribute or embed ZephyrZSH:
+If you fork, redistribute or embed AutoZSH:
 
-1. Include a link "ZephyrZSH" to this repository in your README or documentation.
+1. Include a link "AutoZSH" to this repository in your README or documentation.
 2. Attribute the original author:
    ```
-   ZephyrZSH was created by Daniel Speck (github.com/daniel451)  
+   AutoZSH was created by Daniel Speck (github.com/daniel451)
    Licensed under CC-BY-SA 4.0
    Redistribution permitted given you copy and include this notice and
    distribute your works under the same license.
@@ -44,15 +44,15 @@ The installer expects the following tools to be available:
 ## Running the installer
 
 1. Clone this repository and open the directory.
-2. Execute `./zephyr-install.sh`.
+2. Execute `./autozsh-install.sh`.
    - The script prompts for confirmation.
-   - It invokes `zephyr-checkup.sh` to verify dependencies.
+   - It invokes `autozsh-checkup.sh` to verify dependencies.
    - oh-my-zsh and all plugins are downloaded and installed locally.
    - Finally, the `zshrc` file is copied to `$HOME/.zshrc`.
 
 ## Checking dependencies
 
-`zephyr-checkup.sh` is executed automatically by the installer but can be run manually, too. This script ensures all required commands are installed.
+`autozsh-checkup.sh` is executed automatically by the installer but can be run manually, too. This script ensures all required commands are installed.
 
 ## Customizing your configuration
 
