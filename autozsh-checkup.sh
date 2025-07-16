@@ -16,5 +16,6 @@ check_command "git"
 check_command "curl"
 check_command "fzy"
 check_command "fzf"
+check_command "zoxide"
 
 echo -e "done!\n"
