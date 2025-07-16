@@ -3,7 +3,7 @@
 # automatically terminate on error
 set -e
 
-echo -e "Welcome to ZephyrZSH installer.\n"
+echo -e "Welcome to AutoZSH installer.\n"
 
 echo "This installer will install oh-my-zsh alongside with plugins \
 for autocompletion and deploy a feature-rich .zshrc config file to start \
@@ -27,7 +27,7 @@ else
 fi
 
 # run checkup
-./zephyr-checkup.sh
+./autozsh-checkup.sh
 
 # install oh-my-zsh
 echo -e "installing oh-my-zsh...\n"
