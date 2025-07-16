@@ -184,7 +184,7 @@ gitc() {
   branches=$(git branch -a) &&
   branch=$(echo "$branches" | fzf +s +m -e)
   [ -z "$branch" ] && return
-  git checkout -- "$(echo "$branch" | sed 's:.* remotes/origin/::' | sed 's:.* ::')"
+  git checkout "$(echo "$branch" | sed 's:.* remotes/origin/::' | sed 's:.* ::')"
 }
 
 # git merge
@@ -194,7 +194,7 @@ gitm() {
   branches=$(git branch -a) &&
   branch=$(echo "$branches" | fzf +s +m -e)
   [ -z "$branch" ] && return
-  git merge -- "$(echo "$branch" | sed 's:.* remotes/origin/::' | sed 's:.* ::')"
+  git merge "$(echo "$branch" | sed 's:.* remotes/origin/::' | sed 's:.* ::')"
 }
 
 # git branch selection
