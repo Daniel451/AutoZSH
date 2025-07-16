@@ -28,14 +28,14 @@ fi
 
 # check for previous oh-my-zsh installation
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    echo "An existing oh-my-zsh installation was found at $HOME/.oh-my-zsh."
+    echo "\nAn existing oh-my-zsh installation was found at $HOME/.oh-my-zsh."
     read -rp "Do you want to re-install (y/N)? " reinstall
     reinstall=${reinstall,,}
     if [[ "$reinstall" == "y" ]]; then
         echo "Removing previous installation..."
         rm -rf "$HOME/.oh-my-zsh"
     else
-        echo "installation aborted."
+        echo "\nInstallation aborted.\n"
         exit 1
     fi
 fi
