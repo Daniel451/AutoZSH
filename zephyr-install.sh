@@ -8,7 +8,7 @@ echo -e "Welcome to ZephyrZSH installer.\n"
 echo "This installer will install oh-my-zsh alongside with plugins \
 for autocompletion and deploy a feature-rich .zshrc config file to start \
 with. The installation requires all dependencies to be installed (this will \
-be checked by the installer. Root priviliges are NOT needed as the installer \
+be checked by the installer. Root privileges are NOT needed as the installer \
 will just locally deploy everything for the currently active user and in this \
 user's home directory."
 
