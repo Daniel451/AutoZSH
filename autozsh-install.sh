@@ -85,10 +85,10 @@ echo ""
 echo -e "done.\n"
 
 # deploy config
-echo -e "backup existing .zshrc file...\n"
 if [[ -f "${HOME}/.zshrc" ]]; then
+    echo -e "backup existing .zshrc file...\n"
     cp "${HOME}/.zshrc" "${HOME}/.zshrc.backup"
-    echo "Existing .zshrc file backed up to ${HOME}/.zshrc.backup"
+    echo -e "Existing .zshrc file backed up to ${HOME}/.zshrc.backup\n"
 fi
 echo -e "deploying zshrc file (config)...\n"
 cp zshrc ${HOME}/.zshrc
