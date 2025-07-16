@@ -145,7 +145,7 @@ export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 # autosuggestions shortcuts
 bindkey "^f" forward-char           # Ctrl-f - forwards whole line
 bindkey "^w" forward-word           # Ctrl-w - forwards one word
-bindkey "^b" backward-word           # Ctrl-w - forwards one word
+bindkey "^b" backward-word           # Ctrl-b - move backward one word
 
 # n-history
 zle -N znt-history-widget
