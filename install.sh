@@ -34,7 +34,7 @@ if [ "$HOME" = "/root" ] && [ "$(whoami)" != "root" ]; then
     echo "Corrected HOME: $HOME"
 fi
 
-echo "Installing to ZSH directory: $HOME/.oh-my-zsh"
+echo -e "\nInstalling to directory:\n$HOME/.oh-my-zsh\n"
 export ZSH="$HOME/.oh-my-zsh"
 
 # ask for installation only if interactive
