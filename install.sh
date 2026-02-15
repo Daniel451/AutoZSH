@@ -14,11 +14,33 @@ be checked by the installer. Root privileges are NOT needed as the installer \
 will just locally deploy everything for the currently active user and in this \
 user's home directory."
 
+if [ -z "$HOME" ]; then
+    echo "HOME is not set. Attempting to detect..."
+    if command -v getent &> /dev/null; then
+        export HOME=$(getent passwd $(whoami) | cut -d: -f6)
+    else
+        export HOME=$(eval echo ~$(whoami))
+    fi
+    echo "Detected HOME: $HOME"
+fi
+
+if [ "$HOME" = "/root" ] && [ "$(whoami)" != "root" ]; then
+    echo "HOME is set to /root but user is $(whoami). correcting HOME..."
+    if command -v getent &> /dev/null; then
+        export HOME=$(getent passwd $(whoami) | cut -d: -f6)
+    else
+        export HOME=$(eval echo ~$(whoami))
+    fi
+    echo "Corrected HOME: $HOME"
+fi
+
+echo "Installing to ZSH directory: $HOME/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
+
 # ask for installation only if interactive
 if [ -t 0 ]; then
     read -rp "Do you want to continue (Y/n)? " response
-    response=${response,,}
-    if [[ "$response" == y || "$response" == "" ]]; then
+    if [[ "$(echo "$response" | tr '[:upper:]' '[:lower:]')" == "y" || "$response" == "" ]]; then
         echo -e "proceeding with installation..."
     else
         echo "installation aborted."
@@ -29,21 +51,20 @@ else
 fi
 
 # check for previous oh-my-zsh installation
-if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    echo -e "\nAn existing oh-my-zsh installation was found at $HOME/.oh-my-zsh."
+if [[ -d "$ZSH" ]]; then
+    echo -e "\nAn existing oh-my-zsh installation was found at $ZSH."
     if [ -t 0 ]; then
         read -rp "Do you want to re-install (y/N)? " reinstall
-        reinstall=${reinstall,,}
-        if [[ "$reinstall" == "y" ]]; then
+        if [[ "$(echo "$reinstall" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
             echo "Removing previous installation..."
-            rm -rf "$HOME/.oh-my-zsh"
+            rm -rf "$ZSH"
         else
-            echo -e "\nInstallation aborted. To reinstall, remove $HOME/.oh-my-zsh first.\n"
+            echo -e "\nInstallation aborted. To reinstall, remove $ZSH first.\n"
             exit 1
         fi
     else
         echo "Non-interactive mode: Overwriting existing installation..."
-        rm -rf "$HOME/.oh-my-zsh"
+        rm -rf "$ZSH"
     fi
 fi
 
@@ -63,8 +84,9 @@ check_command "fzf"
 
 # install oh-my-zsh
 echo -e "installing oh-my-zsh...\n"
-# Keep ZSH variable scope local to avoid affecting current shell? 
-# Usually oh-my-zsh installer is safe.
+# Explicitly set ZSH directory to current user's home to avoid permission issues
+# when running via sudo or su without full login shell
+export ZSH="$HOME/.oh-my-zsh"
 RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
 # install plugins
