@@ -39,20 +39,26 @@ The installer expects the following tools to be available:
 - `curl`
 - `fzy`
 - `fzf`
-- `zoxide`
 
-## Running the installer
+Note: `zoxide` is installed automatically by the script.
 
-1. Clone this repository and open the directory.
-2. Execute `./autozsh-install.sh`.
-   - The script prompts for confirmation.
-   - It invokes `autozsh-checkup.sh` to verify dependencies.
-   - oh-my-zsh and all plugins are downloaded and installed locally.
-   - Finally, the `zshrc` file is copied to `$HOME/.zshrc`.
+## Installation
 
-## Checking dependencies
+You can install AutoZSH with a single command:
 
-`autozsh-checkup.sh` is executed automatically by the installer but can be run manually, too. This script ensures all required commands are installed.
+```bash
+curl -fsSL https://raw.githubusercontent.com/Daniel451/AutoZSH/main/install.sh | bash
+```
+
+The script will:
+- Check for required dependencies.
+- Install oh-my-zsh and plugins.
+- Configure your `.zshrc`.
+- Backup existing configuration if present.
+
+To customize the installation or run manually:
+1. Clone this repository.
+2. Run `./install.sh`.
 
 ## Customizing your configuration
 
