@@ -37,9 +37,21 @@ fi
 echo -e "\nInstalling to directory:\n$HOME/.oh-my-zsh\n"
 export ZSH="$HOME/.oh-my-zsh"
 
+if [ -t 1 ]; then
+    is_interactive=true
+else
+    is_interactive=false
+fi
+
+# allow environment to override interactivity
+if [ -n "$NONINTERACTIVE" ]; then
+    is_interactive=false
+fi
+
 # ask for installation only if interactive
-if [ -t 0 ]; then
-    read -rp "Do you want to continue (Y/n)? " response
+if [ "$is_interactive" = true ]; then
+    echo -n "Do you want to continue (Y/n)? "
+    read response < /dev/tty
     if [[ "$(echo "$response" | tr '[:upper:]' '[:lower:]')" == "y" || "$response" == "" ]]; then
         echo -e "proceeding with installation..."
     else
@@ -53,8 +65,9 @@ fi
 # check for previous oh-my-zsh installation
 if [[ -d "$ZSH" ]]; then
     echo -e "\nAn existing oh-my-zsh installation was found at $ZSH."
-    if [ -t 0 ]; then
-        read -rp "Do you want to re-install (y/N)? " reinstall
+    if [ "$is_interactive" = true ]; then
+        echo -n "Do you want to re-install (y/N)? "
+        read reinstall < /dev/tty
         if [[ "$(echo "$reinstall" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
             echo "Removing previous installation..."
             rm -rf "$ZSH"

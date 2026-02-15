@@ -56,6 +56,12 @@ The script will:
 - Configure your `.zshrc`.
 - Backup existing configuration if present.
 
+To ensure non-interactive installation (e.g., to run the installation as part of an automated setup, Dockerfile, ...), you can set `NONINTERACTIVE=1` globally or for that command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Daniel451/AutoZSH/main/install.sh | NONINTERACTIVE=1 bash
+```
+
 To customize the installation or run manually:
 1. Clone this repository.
 2. Run `./install.sh`.
