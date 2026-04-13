@@ -28,7 +28,7 @@ export SYSTEMD_EDITOR="/usr/bin/nvim"
 export RANGER_LOAD_DEFAULT_RC="FALSE"
 
 # alter grep colors - custom grep colors for results of a grep search
-export GREP_COLORS="fn=34:mc=02;30:ms=33:sl=21:cx=31:mt=01;33:ln=33"
+export GREP_COLORS="fn=34:mc=02;30:ms=32:cx=31:mt=01;33:ln=32"
 
 ###############
 ### aliases ###
