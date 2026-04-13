@@ -34,6 +34,9 @@ export GREP_COLORS="fn=34:mc=02;30:ms=32:cx=31:mt=01;33:ln=32"
 ### aliases ###
 ###############
 
+# highlight only grep
+alias greph="grep --color=always -e '^' -e"
+
 # ls aliases
 alias lsl='ls -lh'
 
