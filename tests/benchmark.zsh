@@ -18,12 +18,15 @@ PLUGIN_OVERRIDE=''
 PLUGIN_OVERRIDE_SET=false
 OUTPUT=''
 SANDBOX=''
+BASELINE_RESULTS=''
+STARTUP_RESULTS=''
+NAVIGATION_RESULTS=''
 
 # Keep usage output independent from the currently selected benchmark mode.
 usage() {
-    print -r -- "Usage: ${SCRIPT_NAME} [startup|navigation] [options]"
+    print -r -- "Usage: ${SCRIPT_NAME} [baseline|startup|navigation] [options]"
     print -r -- ''
-    print -r -- 'Without a mode, runs both startup and navigation benchmarks.'
+    print -r -- 'Without a mode, runs baseline, startup, and navigation benchmarks.'
     print -r -- ''
     print -r -- 'Options:'
     print -r -- '  --samples COUNT       Measured samples (default: 300)'
@@ -43,6 +46,12 @@ status() {
     print -r -- "$*"
 }
 
+test_category() {
+    print -r -- '---------------------------------------------------'
+    print -r -- " Test category: $1"
+    print -r -- '---------------------------------------------------'
+}
+
 cleanup() {
     [[ -n ${SANDBOX} && -d ${SANDBOX} ]] && rm -rf -- "${SANDBOX}"
 }
@@ -51,7 +60,7 @@ trap cleanup EXIT INT TERM
 # A mode is optional; arguments otherwise tune the complete benchmark suite.
 while (( $# )); do
     case $1 in
-        startup|navigation)
+        baseline|startup|navigation)
             [[ ${MODE} == all ]] || fail 'select at most one benchmark mode'
             MODE=$1
             ;;
@@ -103,6 +112,9 @@ done
 [[ -r ${CONFIGURATION} ]] || fail "missing configuration: ${CONFIGURATION}"
 (( $+commands[zsh] )) || fail 'zsh is required'
 (( $+commands[zoxide] )) || fail 'zoxide is required'
+if [[ ${MODE} == all || ${MODE} == baseline ]]; then
+    (( $+commands[bash] )) || fail 'bash is required for baseline benchmarks'
+fi
 [[ -d ${HOME}/.oh-my-zsh ]] || fail "missing Oh My Zsh installation: ${HOME}/.oh-my-zsh"
 PLUGIN_DESCRIPTION=${PLUGIN_OVERRIDE_SET:+${PLUGIN_OVERRIDE:-none}}
 [[ ${PLUGIN_OVERRIDE_SET} == true ]] || PLUGIN_DESCRIPTION=default
@@ -111,6 +123,10 @@ PLUGIN_DESCRIPTION=${PLUGIN_OVERRIDE_SET:+${PLUGIN_OVERRIDE:-none}}
 # dependencies through the disposable benchmark home rather than the real one.
 status 'Starting benchmark...'
 status "Configuration: ${SAMPLES} samples, ${WARMUPS} warm-ups, plugins=${PLUGIN_DESCRIPTION:-default}"
+status 'Test category definitions:'
+status '  bash no-config: bare Bash without profiles or rc files'
+status '  zsh no-config: bare Zsh without configuration files'
+status '  zsh config: supplied rc file (default: repository zshrc)'
 status 'Preparing isolated benchmark environment...'
 SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}/autozsh-benchmark.XXXXXX")
 mkdir -p "${SANDBOX}/data"
@@ -132,6 +148,22 @@ run_shell() {
     env "${SANDBOX_ENV[@]}" zsh -dfc "$1"
 }
 
+run_bash() {
+    env "HOME=${SANDBOX}" BASH_ENV='' bash --noprofile --norc -c "$1"
+}
+
+run_bare_zsh() {
+    env "HOME=${SANDBOX}" zsh -dfc "$1"
+}
+
+run_bash_cd() {
+    env "HOME=${SANDBOX}" BASH_ENV='' "TARGET_DIRECTORY=$1" bash --noprofile --norc -c 'builtin cd -- "$TARGET_DIRECTORY"'
+}
+
+run_bare_zsh_cd() {
+    env "HOME=${SANDBOX}" "TARGET_DIRECTORY=$1" zsh -dfc 'builtin cd -- "$TARGET_DIRECTORY"'
+}
+
 elapsed_seconds() {
     local command=$1 start end
     zmodload zsh/datetime
@@ -139,6 +171,21 @@ elapsed_seconds() {
     eval "${command}"
     end=${EPOCHREALTIME}
     awk -v start="${start}" -v end="${end}" 'BEGIN { printf "%.6f", end - start }'
+}
+
+elapsed_command() {
+    local start end
+    zmodload zsh/datetime
+    start=${EPOCHREALTIME}
+    "$@"
+    end=${EPOCHREALTIME}
+    awk -v start="${start}" -v end="${end}" 'BEGIN { printf "%.6f", end - start }'
+}
+
+metric_median() {
+    local results=$1 metric=$2 count
+    count=$(awk -F '\t' -v metric="${metric}" 'NR > 1 { print $metric }' "${results}" | wc -l | tr -d ' ')
+    awk -F '\t' -v metric="${metric}" 'NR > 1 { print $metric }' "${results}" | sort -n | awk -v count="${count}" '{ values[NR] = $1 } END { if (count % 2) print values[(count + 1) / 2]; else printf "%.6f\n", (values[count / 2] + values[count / 2 + 1]) / 2 }'
 }
 
 # Results remain TSV so raw samples can be inspected alongside these summaries.
@@ -186,16 +233,69 @@ progress() {
 
 [[ -n ${DIRECTORY_LIST} ]] || DIRECTORY_LIST=${DEFAULT_DIRECTORY_LIST}
 if [[ ${MODE} == all && -n ${OUTPUT} ]]; then
-    fail '--output requires startup or navigation mode'
+    fail '--output requires baseline, startup, or navigation mode'
 fi
 [[ -n ${OUTPUT} ]] || {
     mkdir -p "${OUTPUT_DIRECTORY}"
+}
+
+baseline_benchmark() {
+    local results=${OUTPUT:-${OUTPUT_DIRECTORY}/baseline.tsv} target
+    typeset -a baseline_directories
+    baseline_directories=("${SANDBOX}/baseline/empty-a" "${SANDBOX}/baseline/empty-b")
+
+    print
+    test_category 'bash no-config and zsh no-config controls'
+    status 'Starting baseline benchmark...'
+    status 'Creating controlled empty directories outside a Git repository...'
+    print -r -- 'Baseline controls run in this order for every sample:'
+    print -r -- '  1. bash no-config startup: bash --noprofile --norc -c ":"'
+    print -r -- '  2. zsh no-config startup: zsh -dfc ":"'
+    print -r -- '  3. bash no-config process + cd: fresh Bash changes to an empty directory'
+    print -r -- '  4. zsh no-config process + cd: fresh Zsh changes to an empty directory'
+    mkdir -p "${baseline_directories[@]}"
+    print -r -- $'sample\ttarget\tbash_startup_seconds\tbare_zsh_startup_seconds\tbash_process_cd_seconds\tbare_zsh_process_cd_seconds' > "${results}"
+
+    RANDOM=${SEED}
+    if (( WARMUPS > 0 )); then
+        status "Running ${WARMUPS} baseline warm-up samples..."
+        print
+    fi
+    for (( warmup = 1; warmup <= WARMUPS; warmup++ )); do
+        target=${baseline_directories[$(( RANDOM % ${#baseline_directories} + 1 ))]}
+        run_bash ':' >/dev/null
+        run_bare_zsh ':' >/dev/null
+        run_bash_cd "${target}" >/dev/null
+        run_bare_zsh_cd "${target}" >/dev/null
+        progress 'baseline warm-up' "${warmup}" "${WARMUPS}"
+    done
+
+    status "Running ${SAMPLES} baseline samples..."
+    print
+    for sample in {1..${SAMPLES}}; do
+        target=${baseline_directories[$(( RANDOM % ${#baseline_directories} + 1 ))]}
+        bash_startup=$(elapsed_command run_bash ':')
+        bare_zsh_startup=$(elapsed_command run_bare_zsh ':')
+        bash_cd=$(elapsed_command run_bash_cd "${target}")
+        bare_zsh_cd=$(elapsed_command run_bare_zsh_cd "${target}")
+        print -r -- "${sample}"$'\t'"${target}"$'\t'"${bash_startup}"$'\t'"${bare_zsh_startup}"$'\t'"${bash_cd}"$'\t'"${bare_zsh_cd}" >> "${results}"
+        progress baseline "${sample}" "${SAMPLES}"
+    done
+    print -r -- "mode=baseline samples=${SAMPLES} warmups=${WARMUPS} seed=${SEED}"
+    summarize "${results}" 3 'bash no-config startup'
+    summarize "${results}" 4 'zsh no-config startup'
+    summarize "${results}" 5 'bash no-config process + cd'
+    summarize "${results}" 6 'zsh no-config process + cd'
+    BASELINE_RESULTS=${results}
+    print
+    print -r -- "raw results: ${results}"
 }
 
 # Configuration load time includes launching a new shell and sourcing zshrc.
 startup_benchmark() {
     local results=${OUTPUT:-${OUTPUT_DIRECTORY}/startup.tsv}
     print
+    test_category 'zsh config'
     status 'Starting startup benchmark...'
     print -r -- $'sample\tstartup_seconds' > "${results}"
     if (( WARMUPS > 0 )); then
@@ -214,7 +314,8 @@ startup_benchmark() {
         progress startup "${sample}" "${SAMPLES}"
     done
     print -r -- "mode=startup samples=${SAMPLES} warmups=${WARMUPS} plugins=${PLUGIN_DESCRIPTION}"
-    summarize "${results}" 2 startup
+    summarize "${results}" 2 'zsh config startup'
+    STARTUP_RESULTS=${results}
     print
     print -r -- "raw results: ${results}"
 }
@@ -224,6 +325,7 @@ startup_benchmark() {
 navigation_benchmark() {
     local results=${OUTPUT:-${OUTPUT_DIRECTORY}/navigation.tsv} targets_file=${SANDBOX}/navigation-targets.tsv
     print
+    test_category 'zsh config'
     status 'Starting navigation benchmark...'
     status 'Loading directories and seeding the isolated zoxide database...'
     [[ -r ${DIRECTORY_LIST} ]] || fail "cannot read directory list: ${DIRECTORY_LIST}"
@@ -300,13 +402,91 @@ navigation_benchmark() {
         progress navigation "${measured_sample}" "${SAMPLES}"
     done
     print -r -- "mode=navigation samples=${SAMPLES} warmups=${WARMUPS} seed=${SEED} plugins=${PLUGIN_DESCRIPTION}"
-    summarize "${results}" 3 cd
-    summarize "${results}" 4 'prompt_git after cd'
-    summarize "${results}" 5 z
-    summarize "${results}" 6 'prompt_git after z'
+    summarize "${results}" 3 'zsh config cd'
+    summarize "${results}" 4 'zsh config prompt after cd'
+    summarize "${results}" 5 'zsh config z'
+    summarize "${results}" 6 'zsh config prompt after z'
+    NAVIGATION_RESULTS=${results}
     print
     print -r -- "raw results: ${results}"
 }
+
+outlier_check() {
+    local results=$1 metric=$2 label=$3 sample_count outlier_count maximum
+    sample_count=$(awk -F '\t' -v metric="${metric}" 'NR > 1 { print $metric }' "${results}" | wc -l | tr -d ' ')
+    outlier_count=$(awk -F '\t' -v metric="${metric}" 'NR > 1 && $metric > 1 { count++ } END { print count + 0 }' "${results}")
+    maximum=$(awk -F '\t' -v metric="${metric}" 'NR > 1 && (!seen++ || $metric > max) { max = $metric } END { print max }' "${results}")
+
+    if (( outlier_count > 0 )); then
+        printf '[ %-7s ] %-32s %4d samples >1s (max %9.6fs)\n' 'WARNING' "${label}:" "${outlier_count}" "${maximum}"
+    else
+        printf '[ %-7s ] %-32s %4d samples >1s (max %9.6fs)\n' 'OKAY' "${label}:" "${outlier_count}" "${maximum}"
+    fi
+}
+
+compare_medians() {
+    local reference_label=$1 reference_results=$2 reference_metric=$3 candidate_label=$4 candidate_results=$5 candidate_metric=$6 reference candidate percent
+    reference=$(metric_median "${reference_results}" "${reference_metric}")
+    candidate=$(metric_median "${candidate_results}" "${candidate_metric}")
+
+    if awk -v reference="${reference}" -v candidate="${candidate}" 'BEGIN { exit !(candidate <= reference * 0.8 && reference - candidate >= 0.02) }'; then
+        percent=$(awk -v reference="${reference}" -v candidate="${candidate}" 'BEGIN { printf "%.0f", (1 - candidate / reference) * 100 }')
+        printf '[ %-7s ] %-32s %3s%% (%8.6fs < %8.6fs)\n' 'NOTICE' "${candidate_label} vs ${reference_label}:" "${percent}" "${candidate}" "${reference}"
+    else
+        printf '[ %-7s ] %-32s %s\n' 'OKAY' "${candidate_label} vs ${reference_label}:" 'no material median advantage'
+    fi
+}
+
+checkup_group() {
+    print
+    print -r -- "--- $1 ------------------------------------------------"
+}
+
+final_checkup() {
+    print
+    print -r -- '==================================================='
+    print -r -- ' Final benchmark checkup'
+    print -r -- '==================================================='
+    print -r -- 'Outlier threshold: samples taking more than 1 second.'
+
+    if [[ -n ${BASELINE_RESULTS} || -n ${STARTUP_RESULTS} ]]; then
+        checkup_group 'Startup'
+        if [[ -n ${BASELINE_RESULTS} ]]; then
+            outlier_check "${BASELINE_RESULTS}" 3 'bash no-config startup'
+            outlier_check "${BASELINE_RESULTS}" 4 'zsh no-config startup'
+        fi
+        if [[ -n ${STARTUP_RESULTS} ]]; then
+            outlier_check "${STARTUP_RESULTS}" 2 'zsh config startup'
+        fi
+        if [[ -n ${BASELINE_RESULTS} ]]; then
+            print
+            print -r -- 'Startup median comparisons (notice: at least 20% and 20ms faster):'
+            compare_medians 'zsh no-config' "${BASELINE_RESULTS}" 4 'bash no-config' "${BASELINE_RESULTS}" 3
+            if [[ -n ${STARTUP_RESULTS} ]]; then
+                compare_medians 'zsh config' "${STARTUP_RESULTS}" 2 'zsh no-config' "${BASELINE_RESULTS}" 4
+                compare_medians 'zsh config' "${STARTUP_RESULTS}" 2 'bash no-config' "${BASELINE_RESULTS}" 3
+            fi
+        fi
+    fi
+
+    if [[ -n ${BASELINE_RESULTS} || -n ${NAVIGATION_RESULTS} ]]; then
+        checkup_group 'Navigation'
+        if [[ -n ${BASELINE_RESULTS} ]]; then
+            outlier_check "${BASELINE_RESULTS}" 5 'bash no-config process + cd'
+            outlier_check "${BASELINE_RESULTS}" 6 'zsh no-config process + cd'
+        fi
+        if [[ -n ${NAVIGATION_RESULTS} ]]; then
+            outlier_check "${NAVIGATION_RESULTS}" 3 'zsh config cd'
+            outlier_check "${NAVIGATION_RESULTS}" 4 'zsh config prompt after cd'
+            outlier_check "${NAVIGATION_RESULTS}" 5 'zsh config z'
+            outlier_check "${NAVIGATION_RESULTS}" 6 'zsh config prompt after z'
+        fi
+    fi
+}
+
+if [[ ${MODE} == all || ${MODE} == baseline ]]; then
+    baseline_benchmark
+fi
 
 if [[ ${MODE} == all || ${MODE} == startup ]]; then
     startup_benchmark
@@ -315,3 +495,5 @@ fi
 if [[ ${MODE} == all || ${MODE} == navigation ]]; then
     navigation_benchmark
 fi
+
+final_checkup
