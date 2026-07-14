@@ -1,0 +1,6 @@
+# Directories used by the default navigation benchmark.
+# Paths are resolved from the repository root.
+.
+tests
+tests/fixtures
+tests/output

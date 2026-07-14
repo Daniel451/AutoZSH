@@ -1,0 +1,4 @@
+# Copy this file and replace these entries with absolute directories that exist
+# on the machine running the benchmark. Blank lines and comments are ignored.
+/absolute/path/to/project-a
+/absolute/path/to/project-b
