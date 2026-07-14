@@ -104,9 +104,7 @@ HISTSIZE=1000000
 plugins=(
     colorize
     colored-man-pages
-    conda-zsh-completion
     docker
-    dirhistory
     encode64
     git
     git-extras
@@ -119,12 +117,27 @@ plugins=(
     zsh-navigation-tools
     zsh-autosuggestions
 )
-autoload -U compinit && compinit
+
+  if (( ${+AUTOZSH_PLUGINS} )); then
+    plugins=(${=AUTOZSH_PLUGINS})
+  fi
 
 # zsh-completions
 fpath+=${ZSH_CUSTOM}/plugins/zsh-completions/src
 
 source $ZSH/oh-my-zsh.sh
+
+  # Keep Agnoster's Git indicator responsive in large repositories.
+  prompt_git() {
+    (( $+commands[git] )) || return
+    [[ "$(command git rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]] || return
+
+    if [[ -n "$(parse_git_dirty)" ]]; then
+      prompt_segment "$AGNOSTER_GIT_DIRTY_BG" "$AGNOSTER_GIT_DIRTY_FG" "+"
+    else
+      prompt_segment "$AGNOSTER_GIT_CLEAN_BG" "$AGNOSTER_GIT_CLEAN_FG"
+    fi
+  }
 
 # User configuration
 
