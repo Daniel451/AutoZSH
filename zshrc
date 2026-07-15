@@ -127,17 +127,23 @@ fpath+=${ZSH_CUSTOM}/plugins/zsh-completions/src
 
 source $ZSH/oh-my-zsh.sh
 
-  # Keep Agnoster's Git indicator responsive in large repositories.
-  prompt_git() {
-    (( $+commands[git] )) || return
-    [[ "$(command git rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]] || return
+# Show the checked-out branch and a + only when it has changes. This avoids
+# Agnoster's richer Git metadata: the branch is read directly from HEAD, so it
+# adds no working-tree scan beyond the lightweight changed-or-not check.
+prompt_git() {
+  (( $+commands[git] )) || return
+  [[ "$(command git rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]] || return
 
-    if [[ -n "$(parse_git_dirty)" ]]; then
-      prompt_segment "$AGNOSTER_GIT_DIRTY_BG" "$AGNOSTER_GIT_DIRTY_FG" "+"
-    else
-      prompt_segment "$AGNOSTER_GIT_CLEAN_BG" "$AGNOSTER_GIT_CLEAN_FG"
-    fi
-  }
+  local branch
+  branch=$(command git symbolic-ref --quiet --short HEAD 2>/dev/null) || \
+    branch=$(command git rev-parse --short HEAD 2>/dev/null)
+
+  if [[ -n "$(parse_git_dirty)" ]]; then
+    prompt_segment "$AGNOSTER_GIT_DIRTY_BG" "$AGNOSTER_GIT_DIRTY_FG" "$branch +"
+  else
+    prompt_segment "$AGNOSTER_GIT_CLEAN_BG" "$AGNOSTER_GIT_CLEAN_FG" "$branch"
+  fi
+}
 
 # User configuration
 
