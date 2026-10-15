@@ -243,15 +243,37 @@ find_ssh_host() {
 zle -N find_ssh_host
 bindkey "^s" find_ssh_host
 
+# interactive directory picker (fzf built-in walker, Ctrl-p)
+autozsh-cd-widget() {
+  emulate -L zsh
+  zle -I
+  local dir
+  dir=$(FZF_DEFAULT_COMMAND= fzf --walker=dir,follow --walker-skip=.git,node_modules \
+    --scheme=path --height=40%) || { zle reset-prompt; return }
+  cd -- "$dir"
+  zle reset-prompt
+}
+
+# interactive file picker (fzf built-in walker, Ctrl-t)
+autozsh-file-widget() {
+  emulate -L zsh
+  zle -I
+  local file
+  file=$(FZF_DEFAULT_COMMAND= fzf --walker=file,follow --walker-skip=.git,node_modules \
+    --scheme=path --height=40%) || { zle reset-prompt; return }
+  LBUFFER="${LBUFFER}${(q)file} "
+  zle reset-prompt
+}
+
+zle -N autozsh-cd-widget
+bindkey '^p' autozsh-cd-widget
+zle -N autozsh-file-widget
+bindkey '^t' autozsh-file-widget
+
 
 ######################
 # additional plugins #
 ######################
-
-# load zsh-fzy
-bindkey '^p' fzy-cd-widget
-bindkey '^t' fzy-file-widget
-source $ZSH/custom/plugins/zsh-fzy/zsh-fzy.plugin.zsh
 
 autoload -Uz compinit
 zstyle ':completion:*' menu select

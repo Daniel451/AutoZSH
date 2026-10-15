@@ -32,15 +32,28 @@ If you fork, redistribute or embed AutoZSH:
 
 ## Prerequisites
 
-The installer expects the following tools to be available:
+### Required tools
+
+These must be pre-installed and reachable on the invoking user's `PATH`
+before the installer runs — system-wide or user-local installs both work:
 
 - `zsh`
 - `git`
 - `curl`
-- `fzy`
-- `fzf`
 
-Note: `zoxide` is installed automatically by the script.
+### Auto-managed dependencies
+
+These are required by the shipped configuration, but they do **not** have
+to be installed system-wide — AutoZSH can provide them itself:
+
+- `fzf` (0.48 or newer: powers the Ctrl-p / Ctrl-t directory and file
+  navigation widgets via its built-in filesystem walker)
+- `zoxide` (smarter `cd` navigation)
+
+If missing (or, for `fzf`, older than 0.48), the installer prompts to
+install them user-locally into `~/.local/bin`. Declining or a failed
+installation aborts the setup. For unattended runs, install is accepted
+with `INSTALL_LOCAL_DEPS=1`.
 
 ## Installation
 
@@ -51,7 +64,9 @@ curl -fsSL https://raw.githubusercontent.com/Daniel451/AutoZSH/main/install.sh |
 ```
 
 The script will:
-- Check for required dependencies.
+- Check the required dependencies and install `fzf` / `zoxide`
+  user-locally if missing (prompted interactively, or pre-accepted with
+  `INSTALL_LOCAL_DEPS=1` in non-interactive runs).
 - Install oh-my-zsh and plugins.
 - Configure your `.zshrc`.
 - Backup existing configuration if present.
@@ -59,7 +74,7 @@ The script will:
 To ensure non-interactive installation (e.g., to run the installation as part of an automated setup, Dockerfile, ...), you can set `NONINTERACTIVE=1` globally or for that command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Daniel451/AutoZSH/main/install.sh | NONINTERACTIVE=1 bash
+curl -fsSL https://raw.githubusercontent.com/Daniel451/AutoZSH/main/install.sh | NONINTERACTIVE=1 INSTALL_LOCAL_DEPS=1 bash
 ```
 
 To customize the installation or run manually:
