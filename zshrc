@@ -125,6 +125,11 @@ plugins=(
 # zsh-completions
 fpath+=${ZSH_CUSTOM}/plugins/zsh-completions/src
 
+# Must be set before oh-my-zsh loads: plugins probe for binaries at startup
+# (e.g. the zoxide plugin), so user-local installs in ~/.local/bin have to be
+# discoverable by then.
+export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+
 source $ZSH/oh-my-zsh.sh
 
 # Show the checked-out branch and a + only when it has changes. This avoids
@@ -147,7 +152,6 @@ prompt_git() {
 
 # User configuration
 
-export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 # export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
@@ -285,5 +289,5 @@ fpath+=~/.zfunc
 # load syntax highlighting
 source $ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-# zoxide
-eval "$(zoxide init zsh)"
+# Fallback for when the oh-my-zsh `zoxide` plugin is not enabled
+(( $+functions[z] )) || eval "$(zoxide init zsh)"
