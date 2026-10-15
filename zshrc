@@ -244,12 +244,15 @@ zle -N find_ssh_host
 bindkey "^s" find_ssh_host
 
 # interactive directory picker (fzf built-in walker, Ctrl-p)
+# < /dev/tty: inside a widget's command substitution stdin is redirected
+# away from the tty; without this fzf reads it as input and the built-in
+# walker never starts (0/0 results), mirroring upstream fzf key-bindings.zsh
 autozsh-cd-widget() {
   emulate -L zsh
   zle -I
   local dir
   dir=$(FZF_DEFAULT_COMMAND= fzf --walker=dir,follow --walker-skip=.git,node_modules \
-    --scheme=path --height=40%) || { zle reset-prompt; return }
+    --scheme=path --height=40% < /dev/tty) || { zle reset-prompt; return }
   cd -- "$dir"
   zle reset-prompt
 }
@@ -260,7 +263,7 @@ autozsh-file-widget() {
   zle -I
   local file
   file=$(FZF_DEFAULT_COMMAND= fzf --walker=file,follow --walker-skip=.git,node_modules \
-    --scheme=path --height=40%) || { zle reset-prompt; return }
+    --scheme=path --height=40% < /dev/tty) || { zle reset-prompt; return }
   LBUFFER="${LBUFFER}${(q)file} "
   zle reset-prompt
 }
